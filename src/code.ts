@@ -205,12 +205,39 @@ class TextScanner {
 
   async focusOnNode(nodeId: string): Promise<boolean> {
     try {
+      console.log(`ノード検索開始 (ID: ${nodeId})`);
+      
       const node = await figma.getNodeByIdAsync(nodeId);
       if (!node) {
         console.error(`ノードが見つかりません (ID: ${nodeId})`);
         return false;
       }
 
+      console.log(`ノードが見つかりました: ${node.name} (タイプ: ${node.type})`);
+
+      // ノードが別のページにある場合、そのページに移動
+      if (node.type === 'TEXT') {
+        const textNode = node as TextNode;
+        let parentPage: PageNode | null = null;
+        
+        // 親ページを探す
+        let currentNode: BaseNode | null = textNode.parent;
+        while (currentNode && currentNode.type !== 'PAGE') {
+          currentNode = currentNode.parent;
+        }
+        
+        if (currentNode && currentNode.type === 'PAGE') {
+          parentPage = currentNode as PageNode;
+          
+          // 現在のページと異なる場合はページを切り替え
+          if (figma.currentPage.id !== parentPage.id) {
+            console.log(`ページを切り替え: ${parentPage.name}`);
+            figma.currentPage = parentPage;
+          }
+        }
+      }
+
+      // ノードを選択してビューポートに表示
       figma.currentPage.selection = [node as SceneNode];
       figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
       
