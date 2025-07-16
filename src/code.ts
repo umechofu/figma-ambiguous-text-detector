@@ -52,6 +52,7 @@ interface DetectionResult {
   suggestions: Suggestion[];
   location: NodeLocation;
   status: ProcessingStatus;
+  isButtonText: boolean;
 }
 
 enum ProcessingStatus {
@@ -161,6 +162,29 @@ class TextScanner {
       componentName: componentName,
       layerHierarchy: hierarchy
     };
+  }
+
+  /**
+   * テキストがボタン内にあるかどうかを判定
+   */
+  isButtonText(textContent: string, parentInfo: ParentInfo): boolean {
+    const { parentName, isComponent, componentName } = parentInfo;
+    
+    // 1. コンポーネント名にボタンが含まれている
+    const hasButtonComponent = (componentName && componentName.toLowerCase().includes('button')) ||
+                              (parentName.toLowerCase().includes('button'));
+    
+    // 2. テキストが短い（ボタンテキストの特徴）
+    const isShortText = textContent.length <= 15;
+    
+    // 3. クリック系のアクションで終わる
+    const endsWithAction = /クリック|押|タップ|選択$/.test(textContent);
+    
+    // 4. 単純なテキスト構造（複雑な文章ではない）
+    const isSimpleText = !textContent.includes('。') && !textContent.includes('、') && 
+                        textContent.split(' ').length <= 3;
+    
+    return hasButtonComponent && isShortText && endsWithAction && isSimpleText;
   }
 
   async scanPage(page: PageNode): Promise<TextNodeInfo[]> {
@@ -950,7 +974,7 @@ const suggestionGenerator = new SuggestionGenerator();
 let currentDetectionResults: DetectionResult[] = [];
 
 // プラグインの初期化
-console.log('曖昧テキスト検出プラグインが開始されました');
+console.log('あいまいテキスト検出君が開始されました');
 
 // UIを表示
 figma.showUI(__html__, { 
@@ -1004,6 +1028,9 @@ async function handleScanDocument(scanAllPages: boolean = false) {
       const ambiguousMatches = ambiguousDetector.detectAmbiguousText(textNode.content);
       
       for (const match of ambiguousMatches) {
+        // ボタンテキストかどうかを判定
+        const isButtonText = textScanner.isButtonText(textNode.content, textNode.parentInfo);
+        
         // 親レイヤー情報を活用した高精度な提案生成
         const suggestions = suggestionGenerator.generateSuggestions(match, textNode.parentInfo);
         
@@ -1014,7 +1041,8 @@ async function handleScanDocument(scanAllPages: boolean = false) {
           ambiguousMatch: match,
           suggestions: suggestions.slice(0, 5),
           location: textNode.location,
-          status: ProcessingStatus.PENDING
+          status: ProcessingStatus.PENDING,
+          isButtonText: isButtonText
         };
         
         detectionResults.push(result);
@@ -1047,14 +1075,22 @@ async function handleReplaceText(nodeId: string, newText: string, resultId?: str
     
     // resultIdから対応するDetectionResultを見つける
     let ambiguousMatch: AmbiguousMatch | undefined;
+    let isButtonText = false;
+    
     if (resultId && currentDetectionResults) {
       const result = currentDetectionResults.find(r => r.id === resultId);
       if (result) {
         ambiguousMatch = result.ambiguousMatch;
+        isButtonText = result.isButtonText;
       }
     }
     
-    const success = await textScanner.updateTextContent(nodeId, newText, ambiguousMatch);
+    // ボタンテキストの場合は全文置換、その他は部分置換
+    const success = await textScanner.updateTextContent(
+      nodeId, 
+      newText, 
+      isButtonText ? undefined : ambiguousMatch
+    );
     
     if (success) {
       figma.ui.postMessage({
@@ -1062,7 +1098,7 @@ async function handleReplaceText(nodeId: string, newText: string, resultId?: str
         nodeId: nodeId,
         newText: newText
       });
-      console.log(`テキスト置換成功: ${nodeId}`);
+      console.log(`テキスト置換成功: ${nodeId} (${isButtonText ? '全文置換' : '部分置換'})`);
     } else {
       throw new Error('テキストの更新に失敗しました');
     }

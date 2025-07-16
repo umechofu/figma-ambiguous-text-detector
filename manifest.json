@@ -1,5 +1,5 @@
 {
-  "name": "曖昧テキスト検出器",
+  "name": "あいまいテキスト検出君",
   "id": "ambiguous-text-detector",
   "api": "1.0.0",
   "main": "dist/code.js",
