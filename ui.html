@@ -213,6 +213,27 @@
       align-items: center;
       justify-content: space-between;
     }
+
+    .scan-options {
+      margin-bottom: 12px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .checkbox {
+      margin-right: 6px;
+      cursor: pointer;
+    }
+
+    .checkbox-text {
+      user-select: none;
+    }
   </style>
 </head>
 
@@ -223,6 +244,12 @@
   </div>
 
   <div class="scan-section">
+    <div class="scan-options">
+      <label class="checkbox-label">
+        <input type="checkbox" id="scanAllPages" class="checkbox">
+        <span class="checkbox-text">全ページをスキャン</span>
+      </label>
+    </div>
     <button id="scanButton" class="scan-button">
       デザインをスキャン
     </button>
@@ -269,10 +296,14 @@
       statusMessage.textContent = 'デザインを解析しています...';
       hideError();
 
+      // チェックボックスの状態を取得
+      const scanAllPages = document.getElementById('scanAllPages').checked;
+
       // メインスレッドにスキャン要求を送信
       parent.postMessage({
         pluginMessage: {
-          type: 'scan-document'
+          type: 'scan-document',
+          scanAllPages: scanAllPages
         }
       }, '*');
     }

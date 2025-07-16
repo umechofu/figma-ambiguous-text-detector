@@ -97,6 +97,20 @@ class TextScanner {
     return allTextNodes;
   }
 
+  async scanCurrentPage(): Promise<TextNodeInfo[]> {
+    const currentPage = figma.currentPage;
+    const totalNodes = this.countNodes(currentPage);
+    
+    this.reportProgress(0, totalNodes, `現在のページ "${currentPage.name}" をスキャン中...`);
+    
+    const textNodes = await this.scanPage(currentPage);
+    
+    this.reportProgress(totalNodes, totalNodes, 'スキャン完了');
+    
+    console.log(`現在のページスキャン完了: ${textNodes.length}個のテキストノードを検出`);
+    return textNodes;
+  }
+
   async scanPage(page: PageNode): Promise<TextNodeInfo[]> {
     const textNodes: TextNodeInfo[] = [];
     
@@ -768,7 +782,7 @@ figma.ui.onmessage = (msg: any) => {
   
   switch (msg.type) {
     case 'scan-document':
-      handleScanDocument();
+      handleScanDocument(msg.scanAllPages);
       break;
     case 'replace-text':
       handleReplaceText(msg.nodeId, msg.newText, msg.resultId);
@@ -782,16 +796,23 @@ figma.ui.onmessage = (msg: any) => {
 };
 
 // ドキュメントスキャン処理
-async function handleScanDocument() {
+async function handleScanDocument(scanAllPages: boolean = false) {
   try {
     figma.ui.postMessage({ 
       type: 'scan-started',
       message: 'スキャンを開始しています...' 
     });
     
-    console.log('ドキュメントスキャンを開始');
+    console.log(`ドキュメントスキャンを開始 (全ページ: ${scanAllPages})`);
     
-    const textNodes = await textScanner.scanDocument();
+    let textNodes: TextNodeInfo[];
+    if (scanAllPages) {
+      // 全ページをスキャン
+      textNodes = await textScanner.scanDocument();
+    } else {
+      // 現在のページのみをスキャン
+      textNodes = await textScanner.scanCurrentPage();
+    }
     console.log(`${textNodes.length}個のテキストノードを検出`);
     
     const detectionResults: DetectionResult[] = [];
