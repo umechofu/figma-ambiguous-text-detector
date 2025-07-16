@@ -6,6 +6,15 @@ interface TextNodeInfo {
   content: string;
   node: TextNode;
   location: NodeLocation;
+  parentInfo: ParentInfo;
+}
+
+interface ParentInfo {
+  parentName: string;
+  parentType: string;
+  isComponent: boolean;
+  componentName?: string;
+  layerHierarchy: string[];
 }
 
 interface NodeLocation {
@@ -111,6 +120,49 @@ class TextScanner {
     return textNodes;
   }
 
+  /**
+   * 親レイヤー情報を解析
+   */
+  analyzeParentInfo(textNode: TextNode): ParentInfo {
+    const parent = textNode.parent;
+    if (!parent) {
+      return {
+        parentName: 'No Parent',
+        parentType: 'UNKNOWN',
+        isComponent: false,
+        layerHierarchy: []
+      };
+    }
+
+    // レイヤー階層を取得
+    const hierarchy: string[] = [];
+    let currentNode: BaseNode | null = parent;
+    
+    while (currentNode && currentNode.type !== 'PAGE') {
+      hierarchy.unshift(currentNode.name || 'Unnamed');
+      currentNode = currentNode.parent;
+    }
+
+    // コンポーネント情報を判定
+    const isComponent = parent.type === 'COMPONENT' || parent.type === 'INSTANCE';
+    let componentName: string | undefined;
+    
+    if (parent.type === 'INSTANCE') {
+      const instanceNode = parent as InstanceNode;
+      componentName = instanceNode.mainComponent?.name;
+    } else if (parent.type === 'COMPONENT') {
+      componentName = parent.name;
+    }
+
+    return {
+      parentName: parent.name || 'Unnamed',
+      parentType: parent.type,
+      isComponent: isComponent,
+      componentName: componentName,
+      layerHierarchy: hierarchy
+    };
+  }
+
   async scanPage(page: PageNode): Promise<TextNodeInfo[]> {
     const textNodes: TextNodeInfo[] = [];
     
@@ -118,6 +170,7 @@ class TextScanner {
       if (node.type === 'TEXT') {
         const textContent = this.extractTextContent(node);
         if (textContent && textContent.trim().length > 0) {
+          const parentInfo = this.analyzeParentInfo(node);
           const textNodeInfo: TextNodeInfo = {
             id: node.id,
             content: textContent,
@@ -129,7 +182,8 @@ class TextScanner {
                 x: Math.round(node.x),
                 y: Math.round(node.y)
               }
-            }
+            },
+            parentInfo: parentInfo
           };
           textNodes.push(textNodeInfo);
         }
@@ -401,9 +455,15 @@ class AmbiguousTextDetector {
 
 // SuggestionGeneratorクラス
 class SuggestionGenerator {
-  generateSuggestions(match: AmbiguousMatch): Suggestion[] {
+  generateSuggestions(match: AmbiguousMatch, parentInfo?: ParentInfo): Suggestion[] {
     const suggestions: Suggestion[] = [];
     const { ambiguousWord, context } = match;
+
+    // 親レイヤー情報に基づく高精度な候補生成
+    if (parentInfo) {
+      const parentBasedSuggestions = this.getParentBasedSuggestions(ambiguousWord, context, parentInfo);
+      suggestions.push(...parentBasedSuggestions);
+    }
 
     // 文脈に基づく候補生成
     const contextualSuggestions = this.getContextualSuggestions(ambiguousWord, context);
@@ -416,6 +476,129 @@ class SuggestionGenerator {
     // 重複除去とソート
     const uniqueSuggestions = this.removeDuplicateSuggestions(suggestions);
     return uniqueSuggestions.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  private getParentBasedSuggestions(ambiguousWord: string, context: string, parentInfo: ParentInfo): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    const { parentName, parentType, isComponent, componentName, layerHierarchy } = parentInfo;
+
+    // コンポーネント名に基づく高精度判定
+    if (isComponent && componentName) {
+      const componentSuggestions = this.analyzeComponentName(ambiguousWord, componentName, context);
+      suggestions.push(...componentSuggestions);
+    }
+
+    // 親レイヤー名に基づく判定
+    const parentSuggestions = this.analyzeParentName(ambiguousWord, parentName, context);
+    suggestions.push(...parentSuggestions);
+
+    // レイヤー階層に基づく判定
+    const hierarchySuggestions = this.analyzeLayerHierarchy(ambiguousWord, layerHierarchy, context);
+    suggestions.push(...hierarchySuggestions);
+
+    return suggestions;
+  }
+
+  private analyzeComponentName(ambiguousWord: string, componentName: string, context: string): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    const lowerComponentName = componentName.toLowerCase();
+
+    // ボタン系コンポーネント
+    if (lowerComponentName.includes('button') || lowerComponentName.includes('btn')) {
+      if (context.includes('クリック') || context.includes('押')) {
+        // ボタンの種類を特定
+        if (lowerComponentName.includes('primary') || lowerComponentName.includes('submit')) {
+          suggestions.push({ replacementText: '送信', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else if (lowerComponentName.includes('secondary') || lowerComponentName.includes('cancel')) {
+          suggestions.push({ replacementText: 'キャンセル', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else if (lowerComponentName.includes('delete') || lowerComponentName.includes('remove')) {
+          suggestions.push({ replacementText: '削除', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else if (lowerComponentName.includes('save')) {
+          suggestions.push({ replacementText: '保存', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else if (lowerComponentName.includes('next')) {
+          suggestions.push({ replacementText: '次へ', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else if (lowerComponentName.includes('back') || lowerComponentName.includes('prev')) {
+          suggestions.push({ replacementText: '戻る', confidence: 0.95, category: SuggestionCategory.ACTION });
+        } else {
+          suggestions.push({ replacementText: 'ボタン', confidence: 0.9, category: SuggestionCategory.UI_ELEMENT });
+        }
+      }
+    }
+
+    // リンク系コンポーネント
+    if (lowerComponentName.includes('link')) {
+      suggestions.push({ replacementText: 'リンク', confidence: 0.9, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    // フォーム系コンポーネント
+    if (lowerComponentName.includes('form') || lowerComponentName.includes('input')) {
+      suggestions.push({ replacementText: 'フォーム', confidence: 0.9, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    // カード系コンポーネント
+    if (lowerComponentName.includes('card')) {
+      suggestions.push({ replacementText: 'カード', confidence: 0.9, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    // モーダル系コンポーネント
+    if (lowerComponentName.includes('modal') || lowerComponentName.includes('dialog')) {
+      suggestions.push({ replacementText: 'ダイアログ', confidence: 0.9, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    return suggestions;
+  }
+
+  private analyzeParentName(ambiguousWord: string, parentName: string, context: string): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    const lowerParentName = parentName.toLowerCase();
+
+    // 親レイヤー名からUI要素を推測
+    const uiElementPatterns = [
+      { pattern: /button|btn/, suggestion: 'ボタン', confidence: 0.85 },
+      { pattern: /link/, suggestion: 'リンク', confidence: 0.85 },
+      { pattern: /form/, suggestion: 'フォーム', confidence: 0.85 },
+      { pattern: /card/, suggestion: 'カード', confidence: 0.85 },
+      { pattern: /modal|dialog/, suggestion: 'ダイアログ', confidence: 0.85 },
+      { pattern: /menu/, suggestion: 'メニュー', confidence: 0.85 },
+      { pattern: /tab/, suggestion: 'タブ', confidence: 0.85 },
+      { pattern: /header/, suggestion: 'ヘッダー', confidence: 0.8 },
+      { pattern: /footer/, suggestion: 'フッター', confidence: 0.8 },
+      { pattern: /sidebar/, suggestion: 'サイドバー', confidence: 0.8 }
+    ];
+
+    for (const { pattern, suggestion, confidence } of uiElementPatterns) {
+      if (pattern.test(lowerParentName)) {
+        suggestions.push({
+          replacementText: suggestion,
+          confidence: confidence,
+          category: SuggestionCategory.UI_ELEMENT
+        });
+      }
+    }
+
+    return suggestions;
+  }
+
+  private analyzeLayerHierarchy(ambiguousWord: string, hierarchy: string[], context: string): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    
+    // 階層全体を文字列として結合して解析
+    const hierarchyText = hierarchy.join(' ').toLowerCase();
+
+    // 階層からUI構造を推測
+    if (hierarchyText.includes('navigation') || hierarchyText.includes('nav')) {
+      suggestions.push({ replacementText: 'ナビゲーション', confidence: 0.8, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    if (hierarchyText.includes('content') || hierarchyText.includes('main')) {
+      suggestions.push({ replacementText: 'コンテンツ', confidence: 0.75, category: SuggestionCategory.CONTENT });
+    }
+
+    if (hierarchyText.includes('section')) {
+      suggestions.push({ replacementText: 'セクション', confidence: 0.75, category: SuggestionCategory.UI_ELEMENT });
+    }
+
+    return suggestions;
   }
 
   private getContextualSuggestions(ambiguousWord: string, context: string): Suggestion[] {
@@ -821,7 +1004,8 @@ async function handleScanDocument(scanAllPages: boolean = false) {
       const ambiguousMatches = ambiguousDetector.detectAmbiguousText(textNode.content);
       
       for (const match of ambiguousMatches) {
-        const suggestions = suggestionGenerator.generateSuggestions(match);
+        // 親レイヤー情報を活用した高精度な提案生成
+        const suggestions = suggestionGenerator.generateSuggestions(match, textNode.parentInfo);
         
         const result: DetectionResult = {
           id: `${textNode.id}-${match.startIndex}`,
