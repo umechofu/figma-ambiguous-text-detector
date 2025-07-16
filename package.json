@@ -1,0 +1,24 @@
+{
+  "name": "figma-ambiguous-text-detector",
+  "version": "1.0.0",
+  "description": "Figmaプラグイン：UIデザインの曖昧なテキストを検出し、具体的な置換候補を提案",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.90.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "figma",
+    "plugin",
+    "japanese",
+    "text",
+    "ui",
+    "ooui"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
