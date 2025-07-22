@@ -16,6 +16,8 @@ export interface EnvironmentConfig {
   };
   openai: {
     apiKey: string;
+    model: string;
+    maxTokens: number;
   };
   app: {
     nodeEnv: string;
@@ -58,6 +60,8 @@ function validateEnvironment(): EnvironmentConfig {
     },
     openai: {
       apiKey: process.env.OPENAI_API_KEY!,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '300', 10),
     },
     app: {
       nodeEnv: process.env.NODE_ENV || 'development',

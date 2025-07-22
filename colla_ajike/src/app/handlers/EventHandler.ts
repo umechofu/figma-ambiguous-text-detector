@@ -13,25 +13,7 @@ export class EventHandler {
   }
 
   register(): void {
-    // Handle app mentions
-    this.app.event('app_mention', async ({ event, say, context }) => {
-      try {
-        logger.info(`Received app mention from user ${event.user} in channel ${event.channel}`);
-        
-        const helpText = this.getHelpText(event.user);
-        
-        await say({
-          text: helpText,
-          thread_ts: event.ts
-        });
-      } catch (error) {
-        logger.error('Error handling app mention:', error);
-        await say({
-          text: 'すみません、エラーが発生しました。しばらく時間をおいて再度お試しください。',
-          thread_ts: event.ts
-        });
-      }
-    });
+    // Note: app_mention is now handled by AIHandler for advanced AI capabilities
 
     // Handle team join events for new user registration
     this.app.event('team_join', async ({ event, client }) => {

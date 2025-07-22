@@ -64,7 +64,7 @@ export class AIDialogueService {
       
       // Process the query with OpenAI
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: config.openai.model,
         messages: [
           {
             role: 'system',
@@ -75,7 +75,7 @@ export class AIDialogueService {
             content: query.query
           }
         ],
-        max_tokens: 500,
+        max_tokens: config.openai.maxTokens,
         temperature: 0.7,
       });
 
@@ -258,7 +258,7 @@ ${knowledgeContext}
 5. 必要に応じて関連するメンバーや情報源を提案する`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: config.openai.model,
         messages: [
           {
             role: 'system',
@@ -269,7 +269,7 @@ ${knowledgeContext}
             content: question
           }
         ],
-        max_tokens: 400,
+        max_tokens: Math.max(config.openai.maxTokens - 50, 150),
         temperature: 0.7,
       });
 
@@ -377,14 +377,14 @@ ${knowledgeContext}
   async testConnection(): Promise<boolean> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: config.openai.model,
         messages: [
           {
             role: 'user',
             content: 'Hello, this is a test message.'
           }
         ],
-        max_tokens: 10,
+        max_tokens: 50,
       });
 
       return completion.choices.length > 0;

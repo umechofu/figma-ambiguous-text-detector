@@ -239,7 +239,7 @@ export class CommandHandler {
               const users = await client.users.list();
               const foundUser = users.members?.find(user => 
                 user.name === username || 
-                user.display_name === username ||
+                (user as any).display_name === username ||
                 user.real_name === username
               );
               

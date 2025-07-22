@@ -78,6 +78,62 @@ export class SlackBotApp {
     const aiHandler = new AIHandler();
     const analyticsHandler = new AnalyticsHandler();
 
+    // Add debug event listener for all events
+    this.app.use(async ({ event, next }) => {
+      if (event) {
+        logger.info(`🔍 Event received: ${event.type}`, {
+          type: event.type,
+          user: (event as any).user,
+          channel: (event as any).channel,
+          text: (event as any).text ? (event as any).text.substring(0, 100) : undefined,
+          timestamp: event.ts
+        });
+      }
+      await next();
+    });
+
+    // Add debug hello message handler
+    this.app.event('hello', async ({ event }) => {
+      logger.info('👋 Hello event received from Slack', event);
+    });
+
+    // Add simple ping command for connectivity testing
+    this.app.command('/ping', async ({ command, ack, respond }) => {
+      await ack();
+      logger.info('🏓 Ping command received from user:', command.user_id);
+      
+      await respond({
+        text: '🏓 Pong! ボットは正常に動作しています。\n\n' +
+              `• ユーザーID: ${command.user_id}\n` +
+              `• チャンネルID: ${command.channel_id}\n` +
+              `• タイムスタンプ: ${new Date().toISOString()}`,
+        response_type: 'ephemeral'
+      });
+    });
+
+    // Add simple message handler for debugging (more permissive)
+    this.app.message(async ({ message, say }) => {
+      try {
+        const text = (message as any).text || '';
+        const user = (message as any).user;
+        
+        // Log all messages for debugging
+        logger.info('📨 Message received:', {
+          text: text.substring(0, 50),
+          user,
+          channel: (message as any).channel,
+          channel_type: (message as any).channel_type
+        });
+        
+        // Respond to debug messages
+        if (text.toLowerCase().includes('debug') || text.toLowerCase().includes('test')) {
+          await say(`🐛 デバッグモード: メッセージを受信しました！\nユーザー: <@${user}>\nテキスト: "${text.substring(0, 100)}"`);
+        }
+      } catch (error) {
+        logger.error('Error in debug message handler:', error);
+      }
+    });
+
     // Register event handlers
     eventHandler.register();
     commandHandler.register();
@@ -129,6 +185,29 @@ export class SlackBotApp {
       }
 
       logger.info(`Authenticated as bot: ${authTest.user} in team: ${authTest.team}`);
+      logger.info(`🤖 Bot details:`, {
+        botName: authTest.user,
+        botId: authTest.user_id,
+        teamName: authTest.team,
+        teamId: authTest.team_id,
+        url: authTest.url
+      });
+      logger.info(`📝 To mention the bot, use: @${authTest.user}`);
+      
+      // Display available scopes for debugging
+      const scopes = authTest.response_metadata?.scopes || [];
+      logger.info(`🔑 Available bot scopes:`, scopes);
+      
+      // Check for required scopes
+      const requiredScopes = ['app_mentions:read', 'chat:write', 'channels:history', 'im:history', 'commands'];
+      const missingScopes = requiredScopes.filter(scope => !scopes.includes(scope));
+      
+      if (missingScopes.length > 0) {
+        logger.warn(`⚠️  Missing required scopes:`, missingScopes);
+        logger.warn('Consider adding these scopes in Slack App settings → OAuth & Permissions');
+      } else {
+        logger.info('✅ All required scopes are available');
+      }
 
       // Start the app (Socket Mode doesn't need port)
       await this.app.start();

@@ -131,7 +131,7 @@ export class CoffeeRepository extends BaseRepository<Coffee> {
       })) : [];
     } catch (error) {
       // Fallback if RPC function doesn't exist
-      return this.getManualRanking(startDate, endDate);
+      return this.getManualRanking(startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1), endDate || new Date());
     }
   }
 

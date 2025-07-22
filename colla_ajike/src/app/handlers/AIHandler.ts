@@ -21,6 +21,8 @@ export class AIHandler {
     
     // Direct message events
     app.event('message', this.handleDirectMessage.bind(this));
+    
+    logger.info('✅ AIHandler registered with events: app_mention, message, /ask command');
   }
 
   private async handleAskCommand(args: SlackCommandMiddlewareArgs): Promise<void> {
@@ -89,6 +91,14 @@ export class AIHandler {
       const channelId = event.channel;
       const text = event.text;
       
+      logger.info('🎯 App mention received!', { 
+        userId, 
+        channelId, 
+        text: text.substring(0, 100),
+        eventType: event.type,
+        fullEvent: JSON.stringify(event).substring(0, 200)
+      });
+      
       // Extract the query by removing the bot mention
       const botUserId = await this.getBotUserId(client);
       const query = text.replace(`<@${botUserId}>`, '').trim();
@@ -100,47 +110,64 @@ export class AIHandler {
                 '例:\n' +
                 '• 「〇〇さんの得意なことは？」\n' +
                 '• 「Reactのスキルを持つ人はいますか？」\n' +
-                '• 「プロジェクト管理について教えて」'
+                '• 「プロジェクト管理について教えて」\n' +
+                '• 「こんにちは」'
         });
         return;
       }
 
       // Show typing indicator
-      await client.chat.postMessage({
+      const typingMessage = await client.chat.postMessage({
         channel: channelId,
         text: '🤔 考え中...'
       });
 
-      // Process the query
-      const aiQuery: AIQuery = {
-        query,
-        userId,
-        channelId
-      };
+      try {
+        // Process the query
+        const aiQuery: AIQuery = {
+          query,
+          userId,
+          channelId
+        };
 
-      const response = await this.processAIQuery(aiQuery);
-      
-      // Send the response
-      await client.chat.postMessage({
-        channel: channelId,
-        text: response.response,
-        blocks: this.buildResponseBlocks(response)
-      });
+        const response = await this.processAIQuery(aiQuery);
+        
+        // Update the typing message with the response
+        await client.chat.update({
+          channel: channelId,
+          ts: typingMessage.ts,
+          text: response.response,
+          blocks: this.buildResponseBlocks(response)
+        });
 
-      logger.info('AI mention processed', {
-        userId,
-        channelId,
-        queryLength: query.length,
-        confidence: response.confidence
-      });
+        logger.info('AI mention processed successfully', {
+          userId,
+          channelId,
+          queryLength: query.length,
+          confidence: response.confidence
+        });
+      } catch (queryError) {
+        logger.error('Error processing AI query:', queryError);
+        
+        // Update typing message with error
+        await client.chat.update({
+          channel: channelId,
+          ts: typingMessage.ts,
+          text: 'すみません、処理中にエラーが発生しました。\n\n基本的な機能は引き続き利用できます：\n• `/profile` - プロフィール確認\n• `/coffee` - 感謝を伝える\n• `/khub-admin help` - 管理機能'
+        });
+      }
     } catch (error) {
       logger.error('Error handling app mention:', error);
       
       if (event.type === 'app_mention') {
-        await client.chat.postMessage({
-          channel: event.channel,
-          text: 'すみません、エラーが発生しました。もう一度お試しください。'
-        });
+        try {
+          await client.chat.postMessage({
+            channel: event.channel,
+            text: 'すみません、システムエラーが発生しました。しばらく時間をおいてから再度お試しください。'
+          });
+        } catch (messageError) {
+          logger.error('Failed to send error message:', messageError);
+        }
       }
     }
   }
@@ -206,6 +233,11 @@ export class AIHandler {
       // Determine query type and route to appropriate handler
       const queryLower = query.query.toLowerCase();
       
+      // Handle simple greetings and basic interactions
+      if (this.isSimpleGreeting(queryLower)) {
+        return this.handleSimpleGreeting(queryLower);
+      }
+      
       // Check for user expertise queries
       if (queryLower.includes('さんの得意') || queryLower.includes('さんの専門') || queryLower.includes('さんのスキル')) {
         const userName = this.extractUserName(query.query);
@@ -222,8 +254,13 @@ export class AIHandler {
         }
       }
       
-      // General knowledge query
-      return await this.aiDialogueService.getGeneralKnowledgeAnswer(query.query);
+      // General knowledge query (with fallback for OpenAI errors)
+      try {
+        return await this.aiDialogueService.getGeneralKnowledgeAnswer(query.query);
+      } catch (aiError) {
+        logger.warn('OpenAI service unavailable, using fallback response:', aiError);
+        return this.generateFallbackResponse(query.query);
+      }
     } catch (error) {
       logger.error('Error processing AI query:', error);
       throw error;
@@ -340,5 +377,61 @@ export class AIHandler {
       logger.error('Error getting bot user ID:', error);
       return '';
     }
+  }
+
+  private isSimpleGreeting(queryLower: string): boolean {
+    const greetings = [
+      'こんにちは', 'こんばんは', 'おはよう', 'hello', 'hi',
+      'はじめまして', 'よろしく', 'ありがとう', 'ありがとうございます',
+      'お疲れ様', 'お疲れ', 'おはようございます', 'こんにちはございます'
+    ];
+    
+    return greetings.some(greeting => queryLower.includes(greeting));
+  }
+
+  private handleSimpleGreeting(queryLower: string): any {
+    let response = '';
+    
+    if (queryLower.includes('おはよう')) {
+      response = '🌅 おはようございます！今日も一日頑張りましょう！\n\n何かお手伝いできることがあれば、お気軽にお声がけください。';
+    } else if (queryLower.includes('こんにちは')) {
+      response = '👋 こんにちは！\n\n私は組織の知識共有をサポートするボットです。メンバーの専門分野を調べたり、スキルを持つ人を探すことができます。';
+    } else if (queryLower.includes('こんばんは')) {
+      response = '🌙 こんばんは！お疲れ様です。\n\n夜遅くまでお疲れ様です。何かお手伝いできることがあれば、お知らせください。';
+    } else if (queryLower.includes('ありがとう')) {
+      response = '😊 どういたしまして！\n\nいつでもお気軽にお声がけください。チームの知識共有がより活発になるよう、お手伝いします。';
+    } else if (queryLower.includes('お疲れ')) {
+      response = '💪 お疲れ様です！\n\n今日も一日お疲れ様でした。何かサポートが必要でしたら、いつでもお声がけください。';
+    } else {
+      response = '👋 こんにちは！\n\n私はSlack Knowledge Hubです。組織の知識共有をサポートします！\n\n例:\n• 「〇〇さんの得意なことは？」\n• 「Reactのスキルを持つ人はいますか？」';
+    }
+
+    return {
+      response,
+      confidence: 1.0,
+      sources: ['定型応答'],
+      suggestedActions: [
+        'メンバーのスキルを検索する',
+        '専門分野で人を探す',
+        'プロフィール機能を試す'
+      ]
+    };
+  }
+
+  private generateFallbackResponse(query: string): any {
+    return {
+      response: '申し訳ございません。現在AI機能にアクセスできない状況ですが、以下の機能は利用できます：\n\n' +
+                '• `/profile` - メンバーのプロフィール確認\n' +
+                '• `/coffee @ユーザー名 メッセージ` - 感謝を伝える\n' +
+                '• `/khub-admin help` - 管理機能\n\n' +
+                '直接メンバーに質問するか、関連するチャンネルで相談することをお勧めします。',
+      confidence: 0.8,
+      sources: ['システム情報'],
+      suggestedActions: [
+        '直接メンバーに質問する',
+        'プロフィール機能を使う',
+        '関連チャンネルで相談する'
+      ]
+    };
   }
 }
