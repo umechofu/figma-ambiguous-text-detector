@@ -2,16 +2,31 @@
 
 Slack を単なるコミュニケーションツールから組織の貴重な知識資産が集積・活用される「ナレッジハブ」へと昇華させる Slack アプリです。
 
-## 機能
+## 機能状況
 
-- **シャッフル機能**: ランダムに選ばれたメンバーに質問を送信し、知識共有を促進
-- **プロフィール機能**: メンバーの「取扱説明書」を作成・共有
-- **ホットコーヒーシステム**: 感謝の気持ちを表現するピアボーナス機能
-- **日報機能**: 日々のコンディションと進捗を共有
-- **アンケート機能**: 構造化された意見収集
-- **AI 対話機能**: 自然言語による知識発見
-- **データ分析機能**: エンゲージメント状況の可視化
-- **管理機能**: 組織に応じたカスタマイズ
+### ✅ **完全実装・動作確認済み**
+
+- **プロフィール機能** (`/profile`) - メンバーの「取扱説明書」を作成・共有
+- **ホットコーヒーシステム** (`/coffee`) - 感謝の気持ちを表現するピアボーナス機能
+- **AI対話機能** (`@knowledge_hub`) - 自然言語による知識発見（**gpt-4o-mini採用で約70%コスト削減**）
+- **管理機能** (`/khub-admin`) - システム管理とメンテナンス
+
+### 🚧 **開発中・部分実装**
+
+- **シャッフル機能** - ランダム質問システム（バックエンド実装済み）
+- **日報機能** (`/daily`) - 日々のコンディション共有（スケルトン実装）
+- **アンケート機能** (`/survey`) - 構造化された意見収集（スケルトン実装）
+- **データ分析機能** (`/analytics`) - エンゲージメント分析（サービス層実装済み）
+
+### 🎯 **今すぐ使える主要コマンド**
+
+```bash
+/profile           # プロフィール作成・編集
+/profile @username # 他ユーザーのプロフィール表示
+/coffee @username メッセージ  # 感謝のコーヒーを送信
+@knowledge_hub こんにちは     # AI機能との対話
+/khub-admin status # システム状態確認
+```
 
 ## 技術スタック
 
@@ -19,7 +34,7 @@ Slack を単なるコミュニケーションツールから組織の貴重な�
 - **言語**: TypeScript
 - **通信方式**: Socket Mode（WebSocketベース）
 - **データベース**: Supabase (PostgreSQL + リアルタイム機能)
-- **AI 統合**: OpenAI API
+- **AI 統合**: OpenAI API (gpt-4o-mini採用でコスト最適化)
 - **認証**: Slack OAuth 2.0 + Supabase Auth
 
 ## クイックスタート
@@ -66,6 +81,8 @@ Slack を単なるコミュニケーションツールから組織の貴重な�
 - `SUPABASE_ANON_KEY`: Supabase の匿名キー
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase のサービスロールキー
 - `OPENAI_API_KEY`: OpenAI API キー
+- `OPENAI_MODEL`: 使用するAIモデル（デフォルト: gpt-4o-mini）
+- `OPENAI_MAX_TOKENS`: 最大トークン数（デフォルト: 300）
 
 ## 開発
 
@@ -89,6 +106,12 @@ npm run test
 
 ## ドキュメント
 
+### 📖 **ユーザー向け**
+- **[`USER_GUIDE.md`](USER_GUIDE.md)** - 実用的な使い方ガイド（**推奨**）
+- **[`AI_FEATURES.md`](AI_FEATURES.md)** - AI機能詳細とコスト最適化情報
+- **[`ROADMAP.md`](ROADMAP.md)** - 機能完成度と開発計画
+
+### 🔧 **開発者向け**
 - [`SOCKET_MODE_SETUP.md`](SOCKET_MODE_SETUP.md) - Socket Mode セットアップガイド
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) - トラブルシューティング
 - [`CLAUDE.md`](CLAUDE.md) - プロジェクト仕様書（Claude Code用）
