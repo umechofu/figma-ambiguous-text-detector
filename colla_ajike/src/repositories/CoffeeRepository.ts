@@ -110,10 +110,10 @@ export class CoffeeRepository extends BaseRepository<Coffee> {
   }
 
   async getMonthlyRanking(year: number, month: number): Promise<CoffeeStats[]> {
-    try {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    try {
       const { data, error } = await this.client
         .rpc('get_coffee_ranking', {
           start_date: startDate.toISOString(),
@@ -131,7 +131,7 @@ export class CoffeeRepository extends BaseRepository<Coffee> {
       })) : [];
     } catch (error) {
       // Fallback if RPC function doesn't exist
-      return this.getManualRanking(startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1), endDate || new Date());
+      return this.getManualRanking(startDate, endDate);
     }
   }
 

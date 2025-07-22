@@ -9,6 +9,7 @@ import { DailyHandler } from './handlers/DailyHandler';
 import { SurveyHandler } from './handlers/SurveyHandler';
 import { AIHandler } from './handlers/AIHandler';
 import { AnalyticsHandler } from './handlers/AnalyticsHandler';
+import { AnalyticsCommandHandler } from '../handlers/AnalyticsCommandHandler';
 import { UserRepository } from '../repositories/UserRepository';
 import { UserSyncService } from '../services/UserSyncService';
 import { ScheduleManager } from '../services/ScheduleManager';
@@ -77,6 +78,7 @@ export class SlackBotApp {
     const surveyHandler = new SurveyHandler();
     const aiHandler = new AIHandler();
     const analyticsHandler = new AnalyticsHandler();
+    const analyticsCommandHandler = new AnalyticsCommandHandler();
 
     // Add debug event listener for all events
     this.app.use(async ({ event, next }) => {
@@ -142,6 +144,7 @@ export class SlackBotApp {
     surveyHandler.register(this.app);
     aiHandler.register(this.app);
     analyticsHandler.register(this.app);
+    analyticsCommandHandler.register(this.app);
     
     // Profile handler is registered within CommandHandler
 
