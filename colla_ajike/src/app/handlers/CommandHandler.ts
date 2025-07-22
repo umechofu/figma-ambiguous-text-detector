@@ -319,6 +319,116 @@ export class CommandHandler {
       }
     });
 
+    // Shuffle command
+    this.app.command('/shuffle', async ({ command, ack, respond, client }) => {
+      await ack();
+      
+      try {
+        logger.info(`Shuffle command received from user ${command.user_id}: "${command.text}"`);
+        
+        const text = command.text.trim().toLowerCase();
+        
+        if (!text || text === 'help') {
+          // Show help message
+          await respond({
+            text: '🔀 **シャッフル機能の使い方**\n\n• `/shuffle` - このヘルプを表示\n• `/shuffle stats` - 自分の回答統計を表示\n• `/shuffle history` - 最近の回答履歴を表示\n• `/shuffle about` - シャッフル機能について\n\n**シャッフル機能とは：**\nランダムに選ばれたメンバーに質問が送信され、回答が全体に共有される知識共有促進システムです。\n\n管理者による定期実行や手動実行により、組織の知識とスキルが可視化されます。',
+            response_type: 'ephemeral'
+          });
+          return;
+        }
+
+        // Check if user exists in database
+        let user = await this.userRepository.findBySlackId(command.user_id);
+        if (!user) {
+          // Auto-sync user if not found
+          try {
+            user = await this.userSyncService.ensureUser(command.user_id);
+            if (!user) {
+              await respond({
+                text: 'ユーザー情報の取得に失敗しました。管理者にお問い合わせください。',
+                response_type: 'ephemeral'
+              });
+              return;
+            }
+          } catch (error) {
+            logger.error('Error syncing user for shuffle command:', error);
+            await respond({
+              text: 'ユーザー情報の同期中にエラーが発生しました。',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+        }
+
+        if (text === 'stats') {
+          // Show user's shuffle stats
+          const stats = await this.shuffleService.getUserShuffleStats(command.user_id);
+          
+          if (!stats || stats.totalReceived === 0) {
+            await respond({
+              text: '📊 **あなたのシャッフル統計**\n\nまだシャッフル機能での回答がありません。\n\n質問が送信されたら、ぜひ回答してチームと知識を共有しましょう！',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+
+          const responseRate = stats.totalReceived > 0 ? 
+            Math.round((stats.totalAnswered / stats.totalReceived) * 100) : 0;
+
+          await respond({
+            text: `📊 **あなたのシャッフル統計**\n\n• 受信した質問数: ${stats.totalReceived}問\n• 回答した質問数: ${stats.totalAnswered}問\n• 回答率: ${responseRate}%\n• 最後の回答: ${stats.lastAnswered ? new Date(stats.lastAnswered).toLocaleDateString('ja-JP') : 'なし'}\n\n継続的な知識共有、ありがとうございます！`,
+            response_type: 'ephemeral'
+          });
+        } else if (text === 'history') {
+          // Show user's recent responses
+          const responses = await this.shuffleService.getUserRecentResponses(command.user_id, 5);
+          
+          if (responses.length === 0) {
+            await respond({
+              text: '📝 **最近の回答履歴**\n\nまだ回答履歴がありません。\n\n質問を受信したら回答して、あなたの知識をチームと共有しましょう！',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+
+          const historyText = responses.map((response, index) => {
+            const date = new Date(response.createdAt).toLocaleDateString('ja-JP');
+            const question = response.question.content.length > 50 ? 
+              response.question.content.substring(0, 50) + '...' : 
+              response.question.content;
+            const responseText = response.response.length > 100 ? 
+              response.response.substring(0, 100) + '...' : 
+              response.response;
+            return `${index + 1}. **${date}**\n   質問: ${question}\n   回答: ${responseText}`;
+          }).join('\n\n');
+
+          await respond({
+            text: `📝 **最近の回答履歴 (最新5件)**\n\n${historyText}\n\n引き続き積極的な知識共有をお願いします！`,
+            response_type: 'ephemeral'
+          });
+        } else if (text === 'about') {
+          // Show information about shuffle feature
+          const systemStats = await this.shuffleService.getShuffleStats();
+          
+          await respond({
+            text: `🔀 **シャッフル機能について**\n\n**目的:**\nランダムに選ばれたメンバーに質問を送信し、回答を全体で共有することで組織の知識とスキルを可視化します。\n\n**仕組み:**\n1. 管理者が定期実行を設定\n2. ランダムにメンバーが選ばれる\n3. 質問がDMで送信される\n4. 回答がチャンネルで共有される\n\n**現在の統計:**\n• 質問総数: ${systemStats.totalQuestions}問\n• アクティブ質問数: ${systemStats.activeQuestions}問\n• 回答総数: ${systemStats.totalResponses}件\n• 登録ユーザー数: ${systemStats.totalUsers}人\n• 全体回答率: ${systemStats.responseRate}%\n\n**質問カテゴリー:**\n技術Tips、仕事効率化、リモートワーク、デザイン、チーム運用、学びの共有など`,
+            response_type: 'ephemeral'
+          });
+        } else {
+          await respond({
+            text: '不明なコマンドです。`/shuffle help` でヘルプを確認してください。',
+            response_type: 'ephemeral'
+          });
+        }
+      } catch (error) {
+        logger.error('Error handling shuffle command:', error);
+        await respond({
+          text: 'エラーが発生しました。しばらく時間をおいて再度お試しください。',
+          response_type: 'ephemeral'
+        });
+      }
+    });
+
     // Daily report command
     this.app.command('/daily', async ({ command, ack, respond, client }) => {
       await ack();
@@ -450,6 +560,106 @@ export class CommandHandler {
               response_type: 'ephemeral'
             });
           }
+        } else if (text.startsWith('shuffle-test')) {
+          const args = text.split(' ');
+          const targetUser = args[1];
+          
+          if (!targetUser) {
+            await respond({
+              text: '❌ テスト対象のユーザーを指定してください。\n\n**使用方法:**\n`/khub-admin shuffle-test @username`\n\n**例:**\n`/khub-admin shuffle-test @umemoto`',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+          
+          const channelId = command.channel_id;
+          await respond({
+            text: '🧪 テスト用シャッフルを実行しています...',
+            response_type: 'ephemeral'
+          });
+          
+          try {
+            // ユーザー名の解析（@username または <@USERID> 形式に対応）
+            let targetUserId = targetUser;
+            
+            if (targetUser.startsWith('<@') && targetUser.includes('>')) {
+              // <@USERID> 形式の場合
+              const userMentionMatch = targetUser.match(/<@([UW][A-Z0-9]+)>/);
+              if (userMentionMatch) {
+                targetUserId = userMentionMatch[1];
+              }
+            } else if (targetUser.startsWith('@')) {
+              // @username 形式の場合、実際のUserIDに変換
+              const username = targetUser.substring(1);
+              try {
+                const users = await client.users.list();
+                const foundUser = users.members?.find(user => 
+                  user.name === username || 
+                  (user as any).display_name === username ||
+                  user.real_name === username
+                );
+                
+                if (foundUser) {
+                  targetUserId = foundUser.id!;
+                } else {
+                  await respond({
+                    text: `❌ ユーザー「${targetUser}」が見つかりません。\n\n正しいユーザー名またはメンションを使用してください。`,
+                    response_type: 'ephemeral'
+                  });
+                  return;
+                }
+              } catch (error) {
+                logger.error('Error resolving username in shuffle-test:', error);
+                await respond({
+                  text: '❌ ユーザー名の解決中にエラーが発生しました。',
+                  response_type: 'ephemeral'
+                });
+                return;
+              }
+            }
+            
+            // 対象ユーザーのデータベース存在確認と同期
+            let targetUserRecord = await this.userRepository.findBySlackId(targetUserId);
+            if (!targetUserRecord) {
+              try {
+                targetUserRecord = await this.userSyncService.ensureUser(targetUserId);
+                if (!targetUserRecord) {
+                  await respond({
+                    text: '❌ 対象ユーザーの情報取得に失敗しました。',
+                    response_type: 'ephemeral'
+                  });
+                  return;
+                }
+              } catch (error) {
+                logger.error('Error syncing target user:', error);
+                await respond({
+                  text: '❌ ユーザー情報の同期中にエラーが発生しました。',
+                  response_type: 'ephemeral'
+                });
+                return;
+              }
+            }
+            
+            // テスト用シャッフル実行
+            const result = await this.shuffleService.executeTargetedShuffle(targetUserId, channelId);
+            if (result) {
+              await respond({
+                text: `✅ **テスト用シャッフル実行完了**\n\n• 対象ユーザー: ${result.user.name}\n• 質問カテゴリー: ${this.questionService.getCategoryDisplayName(result.question.category)}\n• 質問内容: ${result.question.content.length > 100 ? result.question.content.substring(0, 100) + '...' : result.question.content}\n\n対象ユーザーのDMに質問を送信しました。`,
+                response_type: 'ephemeral'
+              });
+            } else {
+              await respond({
+                text: '❌ テスト用シャッフルの実行に失敗しました。アクティブな質問が不足している可能性があります。',
+                response_type: 'ephemeral'
+              });
+            }
+          } catch (error) {
+            logger.error('Test shuffle execution failed:', error);
+            await respond({
+              text: '❌ テスト用シャッフル実行中にエラーが発生しました。ログを確認してください。',
+              response_type: 'ephemeral'
+            });
+          }
         } else if (text === 'questions') {
           const categories = await this.questionService.getQuestionCategories();
           const categoryText = categories.map(cat => 
@@ -457,9 +667,71 @@ export class CommandHandler {
           ).join('\n');
           
           await respond({
-            text: `📝 **質問管理**\n\n**カテゴリー別質問数 (アクティブ/総数):**\n${categoryText}\n\n質問の詳細管理は今後実装予定です。`,
+            text: `📝 **質問管理**\n\n**カテゴリー別質問数 (アクティブ/総数):**\n${categoryText}\n\n**利用可能な質問管理コマンド:**\n• \`/khub-admin questions-list [category]\` - 質問一覧表示\n• \`/khub-admin question-add\` - 新規質問追加\n• \`/khub-admin question-toggle [ID]\` - 質問の有効/無効切り替え`,
             response_type: 'ephemeral'
           });
+        } else if (text.startsWith('questions-list')) {
+          const args = text.split(' ');
+          const category = args[1];
+          
+          let questions;
+          if (category) {
+            questions = await this.questionService.getQuestionsByCategory(category);
+          } else {
+            questions = await this.questionService.getAllQuestions();
+          }
+          
+          if (questions.length === 0) {
+            await respond({
+              text: category ? 
+                `📝 カテゴリー「${category}」の質問は見つかりませんでした。` :
+                '📝 質問が見つかりませんでした。',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+          
+          const questionsText = questions.slice(0, 20).map((q, index) => {
+            const status = q.isActive ? '🟢' : '🔴';
+            const categoryDisplay = this.questionService.getCategoryDisplayName(q.category);
+            const content = q.content.length > 80 ? 
+              q.content.substring(0, 80) + '...' : q.content;
+            return `${index + 1}. ${status} [${categoryDisplay}] ${content}\n   ID: \`${q.id}\``;
+          }).join('\n\n');
+          
+          const totalText = questions.length > 20 ? `\n\n※ 最初の20件のみ表示 (総数: ${questions.length}問)` : '';
+          
+          await respond({
+            text: `📝 **質問一覧${category ? ` - ${this.questionService.getCategoryDisplayName(category)}` : ''}**\n\n${questionsText}${totalText}\n\n🟢: アクティブ / 🔴: 非アクティブ`,
+            response_type: 'ephemeral'
+          });
+        } else if (text.startsWith('question-toggle')) {
+          const args = text.split(' ');
+          const questionId = args[1];
+          
+          if (!questionId) {
+            await respond({
+              text: '❌ 質問IDを指定してください。\n例: `/khub-admin question-toggle 123e4567-e89b-12d3-a456-426614174000`',
+              response_type: 'ephemeral'
+            });
+            return;
+          }
+          
+          try {
+            const updatedQuestion = await this.questionService.toggleQuestionStatus(questionId);
+            const status = updatedQuestion.isActive ? 'アクティブ' : '非アクティブ';
+            const categoryDisplay = this.questionService.getCategoryDisplayName(updatedQuestion.category);
+            
+            await respond({
+              text: `✅ **質問ステータス更新完了**\n\n**質問:** ${updatedQuestion.content.substring(0, 100)}${updatedQuestion.content.length > 100 ? '...' : ''}\n**カテゴリー:** ${categoryDisplay}\n**新しいステータス:** ${status}`,
+              response_type: 'ephemeral'
+            });
+          } catch (error) {
+            await respond({
+              text: `❌ 質問ステータスの更新に失敗しました。\n\n質問IDが正しいか確認してください。`,
+              response_type: 'ephemeral'
+            });
+          }
         } else if (text === 'schedule-status') {
           const status = this.scheduleManager.getScheduleStatus();
           const nextExec = status.shuffle.nextExecution ? 
@@ -556,7 +828,7 @@ export class CommandHandler {
           }
         } else if (text === 'help') {
           await respond({
-            text: '🔧 **管理者コマンド**\n\n**システム管理:**\n• `status` - システム状態確認\n• `sync-users` - 全ユーザー同期実行\n\n**シャッフル機能:**\n• `shuffle-stats` - シャッフル機能統計\n• `shuffle-run` - 手動シャッフル実行\n• `questions` - 質問管理情報\n\n**プロフィール機能:**\n• `profile-stats` - プロフィール機能統計\n\n**ホットコーヒー機能:**\n• `coffee-stats` - ホットコーヒー機能統計\n• `coffee-awards` - 月次コーヒーアワード発表\n\n**スケジュール管理:**\n• `schedule-status` - スケジュール状態確認\n• `schedule-start` - 定期シャッフル開始\n• `schedule-stop` - 定期シャッフル停止\n\n• `help` - このヘルプを表示\n\n今後追加予定:\n• 質問の追加・編集・削除\n• 詳細統計情報\n• 設定変更',
+            text: '🔧 **管理者コマンド**\n\n**システム管理:**\n• `status` - システム状態確認\n• `sync-users` - 全ユーザー同期実行\n\n**シャッフル機能:**\n• `shuffle-stats` - シャッフル機能統計\n• `shuffle-run` - 手動シャッフル実行\n• `shuffle-test @user` - 指定ユーザーにテスト用シャッフル\n• `questions` - 質問管理情報\n• `questions-list [category]` - 質問一覧表示\n• `question-toggle [ID]` - 質問の有効/無効切り替え\n\n**プロフィール機能:**\n• `profile-stats` - プロフィール機能統計\n\n**ホットコーヒー機能:**\n• `coffee-stats` - ホットコーヒー機能統計\n• `coffee-awards` - 月次コーヒーアワード発表\n\n**スケジュール管理:**\n• `schedule-status` - スケジュール状態確認\n• `schedule-start` - 定期シャッフル開始\n• `schedule-stop` - 定期シャッフル停止\n\n• `help` - このヘルプを表示',
             response_type: 'ephemeral'
           });
         } else {

@@ -52,6 +52,38 @@ export class ShuffleService {
   }
 
   /**
+   * Execute targeted shuffle - send question to specific user (for testing)
+   */
+  async executeTargetedShuffle(targetUserId: string, channelId: string): Promise<{ user: User; question: Question } | null> {
+    try {
+      logger.info(`Starting targeted shuffle for user ${targetUserId} in channel: ${channelId}`);
+
+      // Get random question
+      const question = await this.questionRepository.getRandomQuestion();
+      if (!question) {
+        logger.warn('No active questions available for targeted shuffle');
+        return null;
+      }
+
+      // Get target user
+      const user = await this.userRepository.findBySlackId(targetUserId);
+      if (!user) {
+        logger.warn(`Target user not found: ${targetUserId}`);
+        return null;
+      }
+
+      // Send question to user via DM
+      await this.sendQuestionToUser(user, question, channelId);
+
+      logger.info(`Targeted shuffle completed: User ${user.name} received question ${question.id}`);
+      return { user, question };
+    } catch (error) {
+      logger.error('Error executing targeted shuffle:', error);
+      return null;
+    }
+  }
+
+  /**
    * Send question to user via direct message
    */
   private async sendQuestionToUser(user: User, question: Question, channelId: string): Promise<void> {
@@ -285,6 +317,84 @@ export class ShuffleService {
       return await this.shuffleResponseRepository.findByUserId(user.id, limit);
     } catch (error) {
       logger.error(`Error getting shuffle history for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's shuffle statistics (for individual user)
+   */
+  async getUserShuffleStats(slackUserId: string): Promise<{
+    totalReceived: number;
+    totalAnswered: number;
+    totalSkipped: number;
+    lastAnswered: Date | null;
+  } | null> {
+    try {
+      const user = await this.userRepository.findBySlackId(slackUserId);
+      if (!user) {
+        return null;
+      }
+
+      const responses = await this.shuffleResponseRepository.findByUserId(user.id);
+      const totalReceived = responses.length;
+      const totalAnswered = responses.filter(r => r.response && r.response.trim() !== '').length;
+      const totalSkipped = totalReceived - totalAnswered;
+      
+      // Find most recent answered response
+      const answeredResponses = responses.filter(r => r.response && r.response.trim() !== '');
+      const lastAnswered = answeredResponses.length > 0 
+        ? new Date(Math.max(...answeredResponses.map(r => new Date(r.createdAt).getTime())))
+        : null;
+
+      return {
+        totalReceived,
+        totalAnswered,
+        totalSkipped,
+        lastAnswered
+      };
+    } catch (error) {
+      logger.error(`Error getting user shuffle stats for ${slackUserId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user's recent responses with question details
+   */
+  async getUserRecentResponses(slackUserId: string, limit: number = 5): Promise<Array<{
+    id: string;
+    response: string;
+    createdAt: Date;
+    question: Question;
+  }>> {
+    try {
+      const user = await this.userRepository.findBySlackId(slackUserId);
+      if (!user) {
+        return [];
+      }
+
+      const responses = await this.shuffleResponseRepository.findByUserId(user.id, limit);
+      
+      // Get question details for each response
+      const responsesWithQuestions = await Promise.all(
+        responses.map(async (response) => {
+          const question = await this.questionRepository.findById(response.questionId);
+          return {
+            id: response.id,
+            response: response.response,
+            createdAt: new Date(response.createdAt),
+            question: question!
+          };
+        })
+      );
+
+      // Filter out responses without questions and sort by date (most recent first)
+      return responsesWithQuestions
+        .filter(r => r.question)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      logger.error(`Error getting user recent responses for ${slackUserId}:`, error);
       return [];
     }
   }
