@@ -1,8 +1,8 @@
 import { App, SlackCommandMiddlewareArgs } from '@slack/bolt';
-import { AnalyticsService } from '../../services/AnalyticsService';
-import { ReportGenerator, ReportConfig } from '../../services/ReportGenerator';
-import { DataExporter, ExportConfig } from '../../services/DataExporter';
-import { UserSyncService } from '../../services/UserSyncService';
+import { AnalyticsService } from '../../services/analytics/AnalyticsService';
+import { ReportGenerator, ReportConfig } from '../../services/utils/ReportGenerator';
+import { DataExporter, ExportConfig } from '../../services/utils/DataExporter';
+import { UserSyncService } from '../../services/core/UserSyncService';
 import { logger } from '../../utils/logger';
 
 export class AnalyticsHandler {

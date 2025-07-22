@@ -1,7 +1,7 @@
 import { App, SlackCommandMiddlewareArgs, SlackActionMiddlewareArgs, SlackViewMiddlewareArgs } from '@slack/bolt';
-import { DailyService } from '../../services/DailyService';
-import { ConditionTracker } from '../../services/ConditionTracker';
-import { UserSyncService } from '../../services/UserSyncService';
+import { DailyService } from '../../services/communication/DailyService';
+import { ConditionTracker } from '../../services/communication/ConditionTracker';
+import { UserSyncService } from '../../services/core/UserSyncService';
 import { logger } from '../../utils/logger';
 import { WeatherCondition } from '../../models/DailyReport';
 

@@ -1,6 +1,6 @@
 import { App, SlackCommandMiddlewareArgs, SlackEventMiddlewareArgs } from '@slack/bolt';
-import { AIDialogueService, AIQuery } from '../../services/AIDialogueService';
-import { UserSyncService } from '../../services/UserSyncService';
+import { AIDialogueService, AIQuery } from '../../services/ai/AIDialogueService';
+import { UserSyncService } from '../../services/core/UserSyncService';
 import { logger } from '../../utils/logger';
 
 export class AIHandler {

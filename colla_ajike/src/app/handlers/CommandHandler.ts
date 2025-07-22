@@ -1,16 +1,16 @@
 import { App } from '@slack/bolt';
 import { logger } from '../../utils/logger';
 import { UserRepository } from '../../repositories/UserRepository';
-import { UserSyncService } from '../../services/UserSyncService';
-import { ShuffleService } from '../../services/ShuffleService';
-import { QuestionService } from '../../services/QuestionService';
-import { ScheduleManager } from '../../services/ScheduleManager';
-import { ProfileService } from '../../services/ProfileService';
-import { ProfileRenderer } from '../../services/ProfileRenderer';
+import { UserSyncService } from '../../services/core/UserSyncService';
+import { ShuffleService } from '../../services/communication/ShuffleService';
+import { QuestionService } from '../../services/core/QuestionService';
+import { ScheduleManager } from '../../services/core/ScheduleManager';
+import { ProfileService } from '../../services/core/ProfileService';
+import { ProfileRenderer } from '../../services/core/ProfileRenderer';
 import { ProfileHandler } from './ProfileHandler';
-import { CoffeeService } from '../../services/CoffeeService';
+import { CoffeeService } from '../../services/communication/CoffeeService';
 import { CoffeeHandler } from './CoffeeHandler';
-import { RankingService } from '../../services/RankingService';
+import { RankingService } from '../../services/utils/RankingService';
 
 export class CommandHandler {
   private userRepository: UserRepository;

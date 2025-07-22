@@ -1,5 +1,5 @@
 import { App } from '@slack/bolt';
-import { CoffeeService } from '../../services/CoffeeService';
+import { CoffeeService } from '../../services/communication/CoffeeService';
 import { UserRepository } from '../../repositories/UserRepository';
 import { logger } from '../../utils/logger';
 

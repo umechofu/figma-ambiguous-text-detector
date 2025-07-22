@@ -1,7 +1,7 @@
 import { App } from '@slack/bolt';
 import { logger } from '../../utils/logger';
 import { UserRepository } from '../../repositories/UserRepository';
-import { UserSyncService } from '../../services/UserSyncService';
+import { UserSyncService } from '../../services/core/UserSyncService';
 
 export class EventHandler {
   private userRepository: UserRepository;

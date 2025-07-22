@@ -1,6 +1,6 @@
 import { App } from '@slack/bolt';
-import { ShuffleService } from '../../services/ShuffleService';
-import { QuestionService } from '../../services/QuestionService';
+import { ShuffleService } from '../../services/communication/ShuffleService';
+import { QuestionService } from '../../services/core/QuestionService';
 import { logger } from '../../utils/logger';
 
 export class ShuffleHandler {

@@ -1,6 +1,6 @@
 import { App } from '@slack/bolt';
-import { ProfileService } from '../../services/ProfileService';
-import { ProfileRenderer } from '../../services/ProfileRenderer';
+import { ProfileService } from '../../services/core/ProfileService';
+import { ProfileRenderer } from '../../services/core/ProfileRenderer';
 import { UserRepository } from '../../repositories/UserRepository';
 import { logger } from '../../utils/logger';
 

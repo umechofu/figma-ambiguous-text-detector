@@ -106,15 +106,21 @@ npm run test
 ## ドキュメント
 
 ### 📖 **ユーザー向け**
-- **[`USER_GUIDE.md`](USER_GUIDE.md)** - 実用的な使い方ガイド（**推奨**）
-- **[`AI_FEATURES.md`](AI_FEATURES.md)** - AI機能詳細とコスト最適化情報
-- **[`ROADMAP.md`](ROADMAP.md)** - 機能完成度と開発計画
+- **[`docs/user/user-guide.md`](docs/user/user-guide.md)** - 実用的な使い方ガイド（**推奨**）
+- **[`docs/user/roadmap.md`](docs/user/roadmap.md)** - 機能完成度と開発計画
 
-### 🔧 **開発者向け**
-- [`SOCKET_MODE_SETUP.md`](SOCKET_MODE_SETUP.md) - Socket Mode セットアップガイド
-- [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) - トラブルシューティング
-- [`CLAUDE.md`](CLAUDE.md) - プロジェクト仕様書（Claude Code用）
-- [`docs/archive/`](docs/archive/) - 過去のドキュメント（ngrok関連等）
+### 🔧 **開発・セットアップ**
+- [`docs/setup/quick-start.md`](docs/setup/quick-start.md) - クイックスタートガイド
+- [`docs/setup/socket-mode.md`](docs/setup/socket-mode.md) - Socket Mode セットアップガイド
+- [`docs/setup/troubleshooting.md`](docs/setup/troubleshooting.md) - トラブルシューティング
+
+### ⚙️ **機能詳細**
+- [`docs/features/analytics/features.md`](docs/features/analytics/features.md) - データ分析機能詳細
+- [`docs/features/ai/features.md`](docs/features/ai/features.md) - AI機能詳細とコスト最適化情報
+
+### 👨‍💻 **開発者向け**
+- [`docs/development/claude-specs.md`](docs/development/claude-specs.md) - プロジェクト仕様書（Claude Code用）
+- [`docs/development/archive/`](docs/development/archive/) - 過去のドキュメント（ngrok関連等）
 
 ## ライセンス
 

@@ -9,10 +9,10 @@ import { DailyHandler } from './handlers/DailyHandler';
 import { SurveyHandler } from './handlers/SurveyHandler';
 import { AIHandler } from './handlers/AIHandler';
 import { AnalyticsHandler } from './handlers/AnalyticsHandler';
-import { AnalyticsCommandHandler } from '../handlers/AnalyticsCommandHandler';
+import { AnalyticsCommandHandler } from './handlers/AnalyticsCommandHandler';
 import { UserRepository } from '../repositories/UserRepository';
-import { UserSyncService } from '../services/UserSyncService';
-import { ScheduleManager } from '../services/ScheduleManager';
+import { UserSyncService } from '../services/core/UserSyncService';
+import { ScheduleManager } from '../services/core/ScheduleManager';
 
 export class SlackBotApp {
   private app: App;

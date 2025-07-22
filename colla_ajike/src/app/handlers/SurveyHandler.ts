@@ -1,7 +1,7 @@
 import { App, SlackCommandMiddlewareArgs, SlackActionMiddlewareArgs, SlackViewMiddlewareArgs } from '@slack/bolt';
-import { SurveyService } from '../../services/SurveyService';
-import { ResponseCollector } from '../../services/ResponseCollector';
-import { UserSyncService } from '../../services/UserSyncService';
+import { SurveyService } from '../../services/communication/SurveyService';
+import { ResponseCollector } from '../../services/communication/ResponseCollector';
+import { UserSyncService } from '../../services/core/UserSyncService';
 import { logger } from '../../utils/logger';
 
 export class SurveyHandler {
