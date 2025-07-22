@@ -274,20 +274,32 @@ export class CoffeeService {
       };
     }
 
-    // Extract user mention
-    const userMentionMatch = trimmedText.match(/<@([UW][A-Z0-9]+)(\|[^>]+)?>/);
-    if (!userMentionMatch) {
-      return {
-        userId: null,
-        message: '',
-        error: 'ユーザーをメンションしてください。\n例: `/coffee @john いつもありがとうございます！`'
-      };
+    // Try to extract user mention (Slack ID format: <@U12345678>)
+    let userMentionMatch = trimmedText.match(/<@([UW][A-Z0-9]+)(\|[^>]+)?>/);
+    let userId: string | null = null;
+    let remainingText = trimmedText;
+    
+    if (userMentionMatch) {
+      // Found Slack ID format
+      userId = userMentionMatch[1];
+      remainingText = trimmedText.replace(userMentionMatch[0], '').trim();
+    } else {
+      // Try to find username format (@username)
+      const usernameMatch = trimmedText.match(/@(\w+)/);
+      if (usernameMatch) {
+        // Return special marker for username that needs resolution
+        userId = `@${usernameMatch[1]}`;
+        remainingText = trimmedText.replace(usernameMatch[0], '').trim();
+      } else {
+        return {
+          userId: null,
+          message: '',
+          error: 'ユーザーをメンションしてください。\n例: `/coffee @john いつもありがとうございます！`'
+        };
+      }
     }
 
-    const userId = userMentionMatch[1];
-    const message = trimmedText.replace(userMentionMatch[0], '').trim();
-
-    if (!message) {
+    if (!remainingText) {
       return {
         userId,
         message: '',
@@ -297,7 +309,7 @@ export class CoffeeService {
 
     return {
       userId,
-      message
+      message: remainingText
     };
   }
 

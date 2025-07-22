@@ -217,8 +217,8 @@ export class CommandHandler {
             text: '☕ **ホットコーヒー機能の使い方**\n\n• `/coffee @ユーザー名 メッセージ` - ホットコーヒーを送る\n• `/coffee stats` - 自分の統計を見る\n• `/coffee ranking` - 今月のランキングを見る\n• `/coffee help` - このヘルプを表示\n\n**ホットコーヒーを送るタイミング：**\n• 質問に答えてくれた時\n• ドキュメントを整備してくれた時\n• サポートしてくれた時\n• 知識を共有してくれた時\n\n感謝の気持ちを込めてホットコーヒーを送りましょう！',
             response_type: 'ephemeral'
           });
-        } else if (text.startsWith('<@') && text.includes('>')) {
-          // Send coffee to user
+        } else if (text.includes('@')) {
+          // Send coffee to user (supports both @username and <@userid> formats)
           const parsed = this.coffeeService.parseCoffeeCommand(text);
           
           if (parsed.error) {
@@ -229,18 +229,66 @@ export class CommandHandler {
             return;
           }
 
-          // Validate that receiver exists
-          const receiver = await this.userRepository.findBySlackId(parsed.userId!);
+          let actualUserId = parsed.userId!;
+          
+          // If userId starts with @, it's a username that needs to be resolved
+          if (actualUserId.startsWith('@')) {
+            const username = actualUserId.substring(1); // Remove @ prefix
+            try {
+              // Try to find user by username/display name
+              const users = await client.users.list();
+              const foundUser = users.members?.find(user => 
+                user.name === username || 
+                user.display_name === username ||
+                user.real_name === username
+              );
+              
+              if (foundUser) {
+                actualUserId = foundUser.id!;
+              } else {
+                await respond({
+                  text: `ユーザー「@${username}」が見つかりません。正しいユーザー名を確認してください。`,
+                  response_type: 'ephemeral'
+                });
+                return;
+              }
+            } catch (error) {
+              logger.error('Error resolving username:', error);
+              await respond({
+                text: 'ユーザー名の解決中にエラーが発生しました。',
+                response_type: 'ephemeral'
+              });
+              return;
+            }
+          }
+
+          // Validate that receiver exists in our database
+          let receiver = await this.userRepository.findBySlackId(actualUserId);
           if (!receiver) {
-            await respond({
-              text: 'ユーザーが見つかりません。',
-              response_type: 'ephemeral'
-            });
-            return;
+            // Try to sync the user automatically
+            logger.info(`User ${actualUserId} not found in database. Attempting to sync...`);
+            try {
+              receiver = await this.userSyncService.ensureUser(actualUserId);
+              if (!receiver) {
+                await respond({
+                  text: 'ユーザーが見つかりません。ユーザー情報の同期に失敗しました。',
+                  response_type: 'ephemeral'
+                });
+                return;
+              }
+              logger.info(`Successfully synced user ${receiver.name} (${actualUserId})`);
+            } catch (error) {
+              logger.error('Error syncing receiver user:', error);
+              await respond({
+                text: 'ユーザー情報の取得中にエラーが発生しました。',
+                response_type: 'ephemeral'
+              });
+              return;
+            }
           }
 
           // Check if trying to send to self
-          if (parsed.userId === command.user_id) {
+          if (actualUserId === command.user_id) {
             await respond({
               text: '自分にはホットコーヒーを送ることができません。',
               response_type: 'ephemeral'
@@ -253,7 +301,7 @@ export class CommandHandler {
             client,
             command.trigger_id,
             command.user_id,
-            parsed.userId!,
+            actualUserId,
             command.channel_id
           );
         } else {
