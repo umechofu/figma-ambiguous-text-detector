@@ -331,23 +331,73 @@ export class ResponseCollector {
 
   formatResponseStats(stats: ResponseStats): string {
     let message = `📊 **アンケート回答状況**\n\n`;
-    message += `**タイトル:** ${stats.surveyTitle}\n`;
-    message += `**回答数:** ${stats.totalResponses}名\n`;
-    message += `**回答率:** ${stats.responseRate.toFixed(1)}%\n`;
-    message += `**完了率:** ${stats.completionRate.toFixed(1)}%\n`;
+    message += `**📋 タイトル:** ${stats.surveyTitle}\n`;
+    message += `**👥 回答数:** ${stats.totalResponses}名\n`;
+    
+    // Visual response rate indicator
+    const responseBar = this.createProgressBar(stats.responseRate, 100, 20);
+    message += `**📈 回答率:** ${stats.responseRate.toFixed(1)}% ${responseBar}\n`;
+    
+    // Completion rate with visual indicator
+    const completionBar = this.createProgressBar(stats.completionRate, 100, 15);
+    const completionEmoji = stats.completionRate >= 90 ? '🟢' : stats.completionRate >= 70 ? '🟡' : '🔴';
+    message += `**✅ 完了率:** ${stats.completionRate.toFixed(1)}% ${completionEmoji} ${completionBar}\n`;
 
     if (stats.lastResponseAt) {
-      message += `**最新回答:** ${stats.lastResponseAt.toLocaleString('ja-JP')}\n`;
+      const timeAgo = this.formatTimeAgo(stats.lastResponseAt);
+      message += `**🕐 最新回答:** ${stats.lastResponseAt.toLocaleString('ja-JP')} (${timeAgo})\n`;
     }
 
     if (stats.topResponders.length > 0) {
-      message += `\n**早期回答者:**\n`;
+      message += `\n**🏆 早期回答者 TOP${stats.topResponders.length}:**\n`;
       stats.topResponders.forEach((responder, index) => {
-        message += `${index + 1}. ${responder.userName} (${responder.responseTime.toLocaleString('ja-JP')})\n`;
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        const timeAgo = this.formatTimeAgo(responder.responseTime);
+        message += `${medal} ${responder.userName}\n    📅 ${responder.responseTime.toLocaleString('ja-JP')} (${timeAgo})\n`;
       });
     }
 
+    // Add status summary
+    message += `\n**📊 状況サマリー:**\n`;
+    if (stats.responseRate >= 80) {
+      message += `🎉 優秀な回答率です！`;
+    } else if (stats.responseRate >= 50) {
+      message += `👍 良好な回答率を維持しています`;
+    } else if (stats.responseRate >= 30) {
+      message += `⚠️ 回答率向上のためリマインダーを検討してください`;
+    } else {
+      message += `🚨 回答率が低めです。積極的なフォローアップをお勧めします`;
+    }
+
     return message;
+  }
+
+  private createProgressBar(value: number, max: number, length: number = 15): string {
+    if (max === 0) return '';
+    
+    const percentage = Math.min(value / max, 1);
+    const filledLength = Math.round(percentage * length);
+    const emptyLength = length - filledLength;
+    
+    return '█'.repeat(filledLength) + '░'.repeat(emptyLength);
+  }
+
+  private formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return '今すぐ';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes}分前`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours}時間前`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days}日前`;
+    }
   }
 
   private validateResponses(survey: Survey, responses: Record<string, any>): void {

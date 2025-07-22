@@ -163,7 +163,7 @@ export class SurveyBuilder {
             },
             label: {
               type: 'plain_text',
-              text: `${index + 1}. ${question.question}`
+              text: `${index + 1}. ${question.question}${question.required ? ' *' : ''}`
             },
             optional: !question.required
           });
@@ -186,7 +186,7 @@ export class SurveyBuilder {
             },
             label: {
               type: 'plain_text',
-              text: `${index + 1}. ${question.question}`
+              text: `${index + 1}. ${question.question}${question.required ? ' *' : ''}`
             },
             optional: !question.required
           });
@@ -209,7 +209,7 @@ export class SurveyBuilder {
             },
             label: {
               type: 'plain_text',
-              text: `${index + 1}. ${question.question}`
+              text: `${index + 1}. ${question.question}${question.required ? ' *' : ''}`
             },
             optional: !question.required
           });
@@ -222,17 +222,17 @@ export class SurveyBuilder {
             element: {
               type: 'radio_buttons',
               action_id: 'answer',
-              options: [1, 2, 3, 4, 5].map(rating => ({
-                text: {
-                  type: 'plain_text',
-                  text: `${rating}`
-                },
-                value: rating.toString()
-              }))
+              options: [
+                { value: '1', text: { type: 'plain_text', text: '1⭐ (とても悪い)' } },
+                { value: '2', text: { type: 'plain_text', text: '2⭐ (悪い)' } },
+                { value: '3', text: { type: 'plain_text', text: '3⭐ (普通)' } },
+                { value: '4', text: { type: 'plain_text', text: '4⭐ (良い)' } },
+                { value: '5', text: { type: 'plain_text', text: '5⭐ (とても良い)' } }
+              ]
             },
             label: {
               type: 'plain_text',
-              text: `${index + 1}. ${question.question} (1-5点)`
+              text: `${index + 1}. ${question.question}${question.required ? ' *' : ''}`
             },
             optional: !question.required
           });
@@ -264,7 +264,7 @@ export class SurveyBuilder {
             },
             label: {
               type: 'plain_text',
-              text: `${index + 1}. ${question.question}`
+              text: `${index + 1}. ${question.question}${question.required ? ' *' : ''}`
             },
             optional: !question.required
           });

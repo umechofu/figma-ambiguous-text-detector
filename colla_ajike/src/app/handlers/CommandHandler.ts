@@ -459,35 +459,6 @@ export class CommandHandler {
       }
     });
 
-    // Survey command
-    this.app.command('/survey', async ({ command, ack, respond, client }) => {
-      await ack();
-      
-      try {
-        logger.info(`Survey command received from user ${command.user_id} in channel ${command.channel_id}`);
-        
-        // Check if user exists in database
-        const user = await this.userRepository.findBySlackId(command.user_id);
-        if (!user) {
-          await respond({
-            text: 'ユーザー情報が見つかりません。しばらく時間をおいて再度お試しください。',
-            response_type: 'ephemeral'
-          });
-          return;
-        }
-
-        await respond({
-          text: 'アンケート機能は現在開発中です。しばらくお待ちください！\n\n今後、以下の機能が利用できるようになります：\n• アンケートの作成と配信\n• 豊富なテンプレート\n• 回答の収集と集計\n• 結果の可視化',
-          response_type: 'ephemeral'
-        });
-      } catch (error) {
-        logger.error('Error handling survey command:', error);
-        await respond({
-          text: 'エラーが発生しました。しばらく時間をおいて再度お試しください。',
-          response_type: 'ephemeral'
-        });
-      }
-    });
 
     // Admin command for managing the system
     this.app.command('/khub-admin', async ({ command, ack, respond, client }) => {
