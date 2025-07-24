@@ -190,7 +190,7 @@ MIT License - 詳細は[LICENSE](./LICENSE)ファイルをご覧ください。
 
 開発者: [Shusaku Umemoto]
 - GitHub: [umechofu](https://github.com/umechofu)
-- Figma Community: [figma-ambiguous-text-detector](https://www.figma.com/community/plugin/1528990123678872078)  
+- X: [dubhunter](https://x.com/dubhunter)  
 
 ---
 
