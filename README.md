@@ -1,6 +1,10 @@
-# 曖昧テキスト検出器 - Figma プラグイン
+# あいまいテキスト検出君 - Figma プラグイン
 
-UI デザインにおける曖昧なテキスト表現を自動検出し、OOUI（オブジェクト指向ユーザーインターフェース）の原則に基づいて具体的な置換候補を提供する Figma プラグインです。
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](./docs/RELEASE_NOTES.md)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Figma](https://img.shields.io/badge/figma-plugin-orange.svg)](https://www.figma.com/community)
+
+UIデザインにおける「これ」「それ」などの曖昧なテキスト表現を自動検出し、OOUI（オブジェクト指向ユーザーインターフェース）の原則に基づいて具体的な置換候補を提供するFigmaプラグインです。
 
 ## 機能
 
@@ -122,13 +126,27 @@ npm run watch
 ### プロジェクト構造
 
 ```
-├── src/
-│   ├── code.ts          # メインプラグインロジック
-│   └── types.ts         # TypeScript型定義
-├── ui.html              # プラグインUI
-├── manifest.json        # Figmaプラグイン設定
-├── package.json         # Node.js設定
-└── tsconfig.json        # TypeScript設定
+kiro/
+├── src/                     # TypeScriptソースコード
+│   ├── code.ts             # メインプラグインロジック
+│   ├── TextScanner.ts      # テキストスキャン機能
+│   ├── AmbiguousTextDetector.ts  # 曖昧表現検出エンジン
+│   ├── SuggestionGenerator.ts    # 置換候補生成システム
+│   └── types.ts            # TypeScript型定義
+├── docs/                   # ドキュメント
+│   ├── DEVELOPMENT.md      # 開発ガイド
+│   ├── RELEASE_NOTES.md    # リリースノート
+│   └── PUBLISHING.md       # 公開手順書
+├── assets/                 # 画像・素材
+│   ├── screenshots/        # プラグインUI画面
+│   ├── icons/             # アイコン・ロゴ
+│   └── examples/          # 使用例画像
+├── dist/                  # ビルド出力（git無視）
+├── ui.html                # プラグインUI
+├── manifest.json          # Figmaプラグイン設定
+├── package.json           # Node.js設定
+├── tsconfig.json          # TypeScript設定
+└── .gitignore             # Git無視設定
 ```
 
 ## OOUI の原則
@@ -139,14 +157,41 @@ npm run watch
 - **操作可能性**: ユーザーが直接操作できるオブジェクト（フォーム、ファイル、ページなど）を重視
 - **文脈理解**: テキストの文脈を解析し、適切なオブジェクトを提案
 
-## ライセンス
+## 📚 ドキュメント
 
-MIT License
+- **[開発ガイド](./docs/DEVELOPMENT.md)** - 開発環境セットアップとアーキテクチャ解説
+- **[リリースノート](./docs/RELEASE_NOTES.md)** - バージョン履歴と変更内容
+- **[公開手順](./docs/PUBLISHING.md)** - Figma Community公開ガイド
 
-## 貢献
+## 🆕 最新アップデート (v1.1.0)
 
-プルリクエストやイシューの報告を歓迎します。
+- 🔧 **Figma最新版での動作エラーを修正**
+- ✨ **ローディングスピナーでUX向上**
+- 📈 **処理の安定性を改善**
 
-## 作者
+詳細は[リリースノート](./docs/RELEASE_NOTES.md)をご覧ください。
 
-[Your Name]
+## 🤝 貢献
+
+プルリクエストやイシューの報告を歓迎します！
+
+### 貢献方法
+1. このリポジトリをフォーク
+2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+## 📄 ライセンス
+
+MIT License - 詳細は[LICENSE](./LICENSE)ファイルをご覧ください。
+
+## 👤 作者
+
+開発者: [Your Name]
+- GitHub: [あなたのGitHubアカウント]
+- Figma Community: [プラグインページ]
+
+---
+
+**⭐ このプラグインが役に立ったら、GitHubでスターをお願いします！**

@@ -349,6 +349,50 @@
       }
     }
 
+    /* スピナーアニメーション */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid var(--color-primary-foreground);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 8px;
+      display: none;
+    }
+
+    .spinner.visible {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .scan-button-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid var(--color-primary-foreground);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-top: 8px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+    }
+
+    .loading-spinner.visible {
+      display: block;
+    }
+
     /* アニメーション改善 */
     .scan-button,
     .suggestion-item,
@@ -373,8 +417,12 @@
       </label>
     </div>
     <button id="scanButton" class="scan-button">
-      デザインをスキャン
+      <span class="scan-button-content">
+        <span id="scanButtonText">デザインをスキャン</span>
+        <div id="buttonSpinner" class="spinner"></div>
+      </span>
     </button>
+    <div id="loadingSpinner" class="loading-spinner"></div>
     <div id="progressBar" class="progress-bar">
       <div id="progressFill" class="progress-fill"></div>
     </div>
@@ -396,6 +444,9 @@
   <script>
     // UI要素の取得
     const scanButton = document.getElementById('scanButton');
+    const scanButtonText = document.getElementById('scanButtonText');
+    const buttonSpinner = document.getElementById('buttonSpinner');
+    const loadingSpinner = document.getElementById('loadingSpinner');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
     const statusMessage = document.getElementById('statusMessage');
@@ -413,7 +464,9 @@
     // スキャン開始
     function startScan() {
       scanButton.disabled = true;
-      scanButton.textContent = 'スキャン中...';
+      scanButtonText.textContent = 'スキャン中...';
+      buttonSpinner.classList.add('visible');
+      loadingSpinner.classList.add('visible');
       progressBar.style.display = 'block';
       statusMessage.textContent = 'デザインを解析しています...';
       hideError();
@@ -520,7 +573,9 @@
 
         case 'scan-completed':
           scanButton.disabled = false;
-          scanButton.textContent = 'デザインをスキャン';
+          scanButtonText.textContent = 'デザインをスキャン';
+          buttonSpinner.classList.remove('visible');
+          loadingSpinner.classList.remove('visible');
           progressBar.style.display = 'none';
           statusMessage.textContent = '';
           displayResults(msg.results);
@@ -535,7 +590,9 @@
 
         case 'error':
           scanButton.disabled = false;
-          scanButton.textContent = 'デザインをスキャン';
+          scanButtonText.textContent = 'デザインをスキャン';
+          buttonSpinner.classList.remove('visible');
+          loadingSpinner.classList.remove('visible');
           progressBar.style.display = 'none';
           statusMessage.textContent = '';
           showError(msg.message);

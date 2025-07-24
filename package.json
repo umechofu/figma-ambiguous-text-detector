@@ -1,6 +1,6 @@
 {
   "name": "figma-ambiguous-text-detector",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Figmaプラグイン：UIデザインの曖昧なテキストを検出し、具体的な置換候補を提案",
   "main": "code.js",
   "scripts": {

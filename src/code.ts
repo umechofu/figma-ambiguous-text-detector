@@ -124,7 +124,7 @@ class TextScanner {
   /**
    * 親レイヤー情報を解析
    */
-  analyzeParentInfo(textNode: TextNode): ParentInfo {
+  async analyzeParentInfo(textNode: TextNode): Promise<ParentInfo> {
     const parent = textNode.parent;
     if (!parent) {
       return {
@@ -150,7 +150,13 @@ class TextScanner {
     
     if (parent.type === 'INSTANCE') {
       const instanceNode = parent as InstanceNode;
-      componentName = instanceNode.mainComponent?.name;
+      try {
+        const mainComponent = await instanceNode.getMainComponentAsync();
+        componentName = mainComponent?.name;
+      } catch (error) {
+        console.warn('Failed to get main component:', error);
+        componentName = undefined;
+      }
     } else if (parent.type === 'COMPONENT') {
       componentName = parent.name;
     }
@@ -190,11 +196,11 @@ class TextScanner {
   async scanPage(page: PageNode): Promise<TextNodeInfo[]> {
     const textNodes: TextNodeInfo[] = [];
     
-    const traverseNode = (node: SceneNode, pageName: string) => {
+    const traverseNode = async (node: SceneNode, pageName: string): Promise<void> => {
       if (node.type === 'TEXT') {
         const textContent = this.extractTextContent(node);
         if (textContent && textContent.trim().length > 0) {
-          const parentInfo = this.analyzeParentInfo(node);
+          const parentInfo = await this.analyzeParentInfo(node);
           const textNodeInfo: TextNodeInfo = {
             id: node.id,
             content: textContent,
@@ -215,13 +221,13 @@ class TextScanner {
 
       if ('children' in node && node.children) {
         for (const child of node.children) {
-          traverseNode(child, pageName);
+          await traverseNode(child, pageName);
         }
       }
     };
 
     for (const child of page.children) {
-      traverseNode(child, page.name);
+      await traverseNode(child, page.name);
     }
 
     return textNodes;
