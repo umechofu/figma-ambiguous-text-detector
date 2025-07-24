@@ -149,12 +149,12 @@ kiro/
 └── .gitignore             # Git無視設定
 ```
 
-## OOUI の原則
+## 考え方
 
-このプラグインは、オブジェクト指向ユーザーインターフェース（OOUI）の原則に基づいて設計されています：
+このプラグインは、オブジェクト指向ユーザーインターフェース（OOUI）の原則を参考に設計しています。  
 
 - **具体的なオブジェクト名詞**: 抽象的な表現を避け、ユーザーが操作・参照できる具体的なオブジェクトを提案
-- **操作可能性**: ユーザーが直接操作できるオブジェクト（フォーム、ファイル、ページなど）を重視
+- **操作可能性**: ユーザーが直接操作できるオブジェクト（フォーム、ファイル、ページなど）を提案
 - **文脈理解**: テキストの文脈を解析し、適切なオブジェクトを提案
 
 ## 📚 ドキュメント
@@ -188,9 +188,9 @@ MIT License - 詳細は[LICENSE](./LICENSE)ファイルをご覧ください。
 
 ## 👤 作者
 
-開発者: [Your Name]
-- GitHub: [あなたのGitHubアカウント]
-- Figma Community: [プラグインページ]
+開発者: [Shusaku Umemoto]
+- GitHub: [umechofu](https://github.com/umechofu)
+- Figma Community: [figma-ambiguous-text-detector](https://www.figma.com/community/plugin/1528990123678872078)  
 
 ---
 
